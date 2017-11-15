@@ -7,6 +7,7 @@ import warnings
 import json
 import magic
 import requests
+import copy
 from requests.auth import AuthBase
 
 
@@ -327,6 +328,29 @@ class TheHiveApi:
 
         try:
             return requests.get(req, proxies=self.proxies, auth=self.auth,verify=self.cert)
+        except requests.exceptions.RequestException as e:
+            sys.exit("Error: {}".format(e))
+
+    def update_alert(self, alert_id, alert):
+        """
+            :param alert_id: ID of the alert to update
+            :type alert_id: str
+            :param alert: complete alert object with current and modified data
+            :type alert: .model.Alert
+            :rtype: json
+
+        """
+
+        # Use a modified shallow copy to avoid readOnlyAttribute errors:
+        alert = copy.copy(alert)
+        for ro_attr in ("source", "sourceRef", "date", "type"):
+            delattr(alert, ro_attr)
+
+        req = "{}/api/alert/{}".format(self.url, alert_id)
+        data = alert.jsonify()
+
+        try:
+            return requests.patch(req, headers={'Content-Type': 'application/json'}, data=data, proxies=self.proxies, auth=self.auth, verify=self.cert)
         except requests.exceptions.RequestException as e:
             sys.exit("Error: {}".format(e))
 
